@@ -1,7 +1,7 @@
 import NoteModel from "../../models/Note";
 import BookmarkModel from "../../models/Bookmark";
 import HtmlBookModel from "../../models/HtmlBook";
-import ConfigService from "../../utils/storage/configService";
+import { ConfigService } from "../../assets/lib/kookit-extra-browser.min";
 import DatabaseService from "../../utils/storage/databaseService";
 
 export function handleNotes(notes: NoteModel[]) {
@@ -33,6 +33,12 @@ export function handleChapters(chapters: any) {
 }
 export function handleNoteKey(key: string) {
   return { type: "HANDLE_NOTE_KEY", payload: key };
+}
+export function handleReaderMode(readerMode: string) {
+  return { type: "HANDLE_READER_MODE", payload: readerMode };
+}
+export function handleNavLock(isNavLocked: boolean) {
+  return { type: "HANDLE_NAV_LOCK", payload: isNavLocked };
 }
 export function handleFetchNotes() {
   return (dispatch: (arg0: { type: string; payload: NoteModel[] }) => void) => {

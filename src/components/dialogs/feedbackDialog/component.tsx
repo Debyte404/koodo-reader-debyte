@@ -4,7 +4,7 @@ import { FeedbackDialogProps, FeedbackDialogState } from "./interface";
 import toast from "react-hot-toast";
 import "./feedbackDialog.css";
 import packageInfo from "../../../../package.json";
-import { openExternalUrl } from "../../../utils/common";
+import { openExternalUrl, WEBSITE_URL } from "../../../utils/common";
 import JSZip from "jszip";
 import {
   checkDeveloperUpdate,
@@ -92,7 +92,9 @@ class FeedbackDialog extends Component<
     let result = await sendFeedback(data);
 
     if (result !== "ok") {
-      toast.error(this.props.t("Error happened"));
+      toast.error(this.props.t("Error happened"), {
+        id: "sending-id",
+      });
       this.setState({ isSending: false });
       return;
     }
@@ -130,7 +132,7 @@ class FeedbackDialog extends Component<
             &nbsp;
             <span
               onClick={() => {
-                this.handleJump(`https://koodoreader.com/en/support`);
+                this.handleJump(WEBSITE_URL + "/en/support");
               }}
               style={{ color: "rgb(35, 170, 242)", cursor: "pointer" }}
             >
@@ -182,7 +184,7 @@ class FeedbackDialog extends Component<
               className="feedback-file-box"
               onChange={(event) => {
                 if (!event || !event.target || !event.target.files) {
-                  toast.error("Empty files");
+                  toast.error(this.props.t("Empty files"));
                 }
                 let files: any = event.target.files;
                 let zip = new JSZip();

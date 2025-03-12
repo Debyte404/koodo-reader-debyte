@@ -2,8 +2,14 @@ import React from "react";
 import { TextToSpeechProps, TextToSpeechState } from "./interface";
 import { Trans } from "react-i18next";
 import { speedList } from "../../constants/dropdownList";
-import ConfigService from "../../utils/storage/configService";
-import { checkPlugin, getAllVoices, sleep } from "../../utils/common";
+import { ConfigService } from "../../assets/lib/kookit-extra-browser.min";
+import {
+  checkPlugin,
+  getAllVoices,
+  handleContextMenu,
+  sleep,
+  WEBSITE_URL,
+} from "../../utils/common";
 import { isElectron } from "react-device-detect";
 import toast from "react-hot-toast";
 import TTSUtil from "../../utils/reader/ttsUtil";
@@ -40,7 +46,7 @@ class TextToSpeech extends React.Component<
       this.setState({ isAudioOn: false });
     }
     const setSpeech = () => {
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve) => {
         let synth = window.speechSynthesis;
         let id;
         if (synth) {
@@ -213,8 +219,8 @@ class TextToSpeech extends React.Component<
       return;
     }
   }
-  handleSpeech = async (index: number, voiceIndex: number, speed: number) => {
-    return new Promise<string>(async (resolve, reject) => {
+  handleSpeech = async (index: number, _voiceIndex: number, _speed: number) => {
+    return new Promise<string>(async (resolve) => {
       let res = await TTSUtil.readAloud(index);
       if (res === "loaderror") {
         resolve("start");
@@ -234,7 +240,7 @@ class TextToSpeech extends React.Component<
     voiceIndex: number,
     speed: number
   ) => {
-    return new Promise<string>(async (resolve, reject) => {
+    return new Promise<string>(async (resolve) => {
       var msg = new SpeechSynthesisUtterance();
       msg.text = this.nodeList[index]
         .replace(/\s\s/g, "")
@@ -249,11 +255,11 @@ class TextToSpeech extends React.Component<
       window.speechSynthesis && window.speechSynthesis.cancel();
       window.speechSynthesis.speak(msg);
       msg.onerror = (err) => {
-        console.log(err);
+        console.error(err);
         resolve("end");
       };
 
-      msg.onend = async (event) => {
+      msg.onend = async () => {
         if (!(this.state.isAudioOn && this.props.isReading)) {
           resolve("end");
         }
@@ -389,6 +395,10 @@ class TextToSpeech extends React.Component<
                   )}
                   id="voice-add-content-box"
                   className="voice-add-content-box"
+                  onContextMenu={() => {
+                    handleContextMenu("voice-add-content-box");
+                  }}
+                  style={{ marginBottom: "10px" }}
                 />
 
                 <div
@@ -441,13 +451,9 @@ class TextToSpeech extends React.Component<
                         ConfigService.getReaderConfig("lang") === "zhTW" ||
                         ConfigService.getReaderConfig("lang") === "zhMO"
                       ) {
-                        openExternalUrl(
-                          "https://www.koodoreader.com/zh/plugin"
-                        );
+                        openExternalUrl(WEBSITE_URL + "/zh/plugin");
                       } else {
-                        openExternalUrl(
-                          "https://www.koodoreader.com/en/plugin"
-                        );
+                        openExternalUrl(WEBSITE_URL + "/en/plugin");
                       }
                     }}
                   >

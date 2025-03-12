@@ -5,6 +5,7 @@ export interface ProgressPanelProps {
   currentBook: BookModel;
   isReading: boolean;
   currentChapter: string;
+  readerMode: string;
   currentChapterIndex: number;
   t: (title: string) => string;
   percentage: number;
@@ -16,6 +17,5 @@ export interface ProgressPanelState {
   totalPage: number;
   targetChapterIndex: number | string;
   targetPage: number | string;
-  isSingle: boolean;
   isEntered: boolean;
 }

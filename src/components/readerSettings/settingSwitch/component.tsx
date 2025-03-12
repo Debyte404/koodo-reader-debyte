@@ -2,7 +2,7 @@ import React from "react";
 import { SettingSwitchProps, SettingSwitchState } from "./interface";
 import { Trans } from "react-i18next";
 import TextToSpeech from "../../textToSpeech";
-import ConfigService from "../../../utils/storage/configService";
+import { ConfigService } from "../../../assets/lib/kookit-extra-browser.min";
 import { readerSettingList } from "../../../constants/settingList";
 import toast from "react-hot-toast";
 import BookUtil from "../../../utils/file/bookUtil";
@@ -20,7 +20,6 @@ class SettingSwitch extends React.Component<
       isShadow: ConfigService.getReaderConfig("isShadow") === "yes",
       isItalic: ConfigService.getReaderConfig("isItalic") === "yes",
       isInvert: ConfigService.getReaderConfig("isInvert") === "yes",
-      isBionic: ConfigService.getReaderConfig("isBionic") === "yes",
       isPurePdf: ConfigService.getReaderConfig("isPurePdf") === "yes",
       isHideBackground:
         ConfigService.getReaderConfig("isHideBackground") === "yes",
@@ -96,9 +95,6 @@ class SettingSwitch extends React.Component<
                     break;
                   case "isInvert":
                     this._handleChange("isInvert");
-                    break;
-                  case "isBionic":
-                    this._handleChange("isBionic");
                     break;
                   case "isPurePdf":
                     this._handleChange("isPurePdf");

@@ -12,7 +12,10 @@ export interface ViewerProps {
   isReading: boolean;
   htmlBook: HtmlBook;
   isShow: boolean;
+  readerMode: string;
   isOpenMenu: boolean;
+  isNavLocked: boolean;
+  defaultSyncOption: string;
   handleRenderBookFunc: (renderBookFunc: () => void) => void;
   renderNoteFunc: () => void;
   t: (title: string) => string;
@@ -28,6 +31,7 @@ export interface ViewerProps {
   handleNoteKey: (key: string) => void;
   handleOpenMenu: (isOpenMenu: boolean) => void;
   handleMenuMode: (menu: string) => void;
+  handleReaderMode: (readerMode: string) => void;
   handleCurrentChapter: (currentChapter: string) => void;
   handleCurrentChapterIndex: (currentChapterIndex: number) => void;
   handlePercentage: (percentage: number) => void;
@@ -41,7 +45,6 @@ export interface ViewerState {
   chapterTitle: string;
   isDisablePopup: boolean;
   margin: number;
-  readerMode: string;
   chapter: string;
   pageOffset: string;
   pageWidth: string;

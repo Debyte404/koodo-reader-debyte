@@ -2,7 +2,6 @@ import React from "react";
 import "./bookCoverItem.css";
 import { BookCoverProps, BookCoverState } from "./interface";
 import ActionDialog from "../dialogs/actionDialog";
-import ConfigService from "../../utils/storage/configService";
 import { withRouter } from "react-router-dom";
 import { isElectron } from "react-device-detect";
 import EmptyCover from "../emptyCover";
@@ -10,6 +9,7 @@ import { Trans } from "react-i18next";
 import BookUtil from "../../utils/file/bookUtil";
 import toast from "react-hot-toast";
 import CoverUtil from "../../utils/file/coverUtil";
+import { ConfigService } from "../../assets/lib/kookit-extra-browser.min";
 declare var window: any;
 
 class BookCoverItem extends React.Component<BookCoverProps, BookCoverState> {
@@ -33,7 +33,7 @@ class BookCoverItem extends React.Component<BookCoverProps, BookCoverState> {
     // Get file path from electron
     if (isElectron) {
       const { ipcRenderer } = window.require("electron");
-      filePath = ipcRenderer.sendSync("get-file-data");
+      filePath = ipcRenderer.sendSync("check-file-data");
     }
 
     if (
@@ -44,7 +44,7 @@ class BookCoverItem extends React.Component<BookCoverProps, BookCoverState> {
       !filePath
     ) {
       this.props.handleReadingBook(this.props.book);
-      BookUtil.redirectBook(this.props.book, this.props.t);
+      BookUtil.redirectBook(this.props.book);
     }
   }
   UNSAFE_componentWillReceiveProps(nextProps: BookCoverProps) {
@@ -101,7 +101,7 @@ class BookCoverItem extends React.Component<BookCoverProps, BookCoverState> {
     }
     ConfigService.setListConfig(this.props.book.key, "recentBooks");
     this.props.handleReadingBook(this.props.book);
-    BookUtil.redirectBook(this.props.book, this.props.t);
+    BookUtil.redirectBook(this.props.book);
   };
   render() {
     let percentage = "0";
@@ -207,7 +207,7 @@ class BookCoverItem extends React.Component<BookCoverProps, BookCoverState> {
               </div>
             ) : (
               <img
-                data-src={CoverUtil.getCover(this.props.book)}
+                src={CoverUtil.getCover(this.props.book)}
                 alt=""
                 style={
                   this.state.direction === "horizontal" ||
@@ -215,7 +215,7 @@ class BookCoverItem extends React.Component<BookCoverProps, BookCoverState> {
                     ? { width: "100%" }
                     : { height: "100%" }
                 }
-                className="lazy-image book-item-image"
+                className="book-item-image"
                 onLoad={(res: any) => {
                   if (
                     res.target.naturalHeight / res.target.naturalWidth >

@@ -1,6 +1,6 @@
 <div align="left">
 
-[简体中文](https://github.com/koodo-reader/koodo-reader/blob/master/README_cn.md) | [English](https://github.com/koodo-reader/koodo-reader/blob/master/README.md) | हिंदी |[Português](https://github.com/koodo-reader/koodo-reader/blob/master/README_pt.md)
+[简体中文](https://github.com/koodo-reader/koodo-reader/blob/master/README_cn.md) | [English](https://github.com/koodo-reader/koodo-reader/blob/master/README.md) | हिंदी |[Português](https://github.com/koodo-reader/koodo-reader/blob/master/README_pt.md) | [Indonesian](https://github.com/koodo-reader/koodo-reader/blob/master/README_id.md)
 
 </div>
 
@@ -25,10 +25,12 @@
 
 <div align="center">
   <br/>
-  <kbd><img src="https://dl.koodoreader.com/screenshots/1.png" width="800px"></kbd>
+  <br/>
+  <img src="https://dl.koodoreader.com/screenshots/7.png" width="800px">
   <br/>
   <br/>
-  <kbd><img src="https://dl.koodoreader.com/screenshots/5.png" width="800px"></kbd>
+  <img src="https://dl.koodoreader.com/screenshots/8.png" width="800px">
+  <br/>
   <br/>
 </div>
 
@@ -81,6 +83,17 @@ docker run -d -p 80:80 --name koodo-reader ghcr.io/koodo-reader/koodo-reader:mas
 ## स्क्रीनशॉट
 
 <div align="center">
+  <b>पुस्तक सूची</b>
+  <br/>
+  <br/>
+  <kbd><img src="https://dl.koodoreader.com/screenshots/1.png" width="800px"></kbd>
+  <br/>
+  <br/>
+  <b>पुस्तक प्रदर्शन</b>
+  <br/>
+  <br/>
+  <kbd><img src="https://dl.koodoreader.com/screenshots/5.png" width="800px"></kbd>
+  <br/>
   <br/>
   <b>सूची मोड</b>
   <br/>

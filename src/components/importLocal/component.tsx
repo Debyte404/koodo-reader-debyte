@@ -10,7 +10,7 @@ import { isElectron } from "react-device-detect";
 import { withRouter } from "react-router-dom";
 import BookUtil from "../../utils/file/bookUtil";
 import toast from "react-hot-toast";
-import ConfigService from "../../utils/storage/configService";
+import { ConfigService } from "../../assets/lib/kookit-extra-browser.min";
 import CoverUtil from "../../utils/file/coverUtil";
 import { calculateFileMD5, fetchFileFromPath } from "../../utils/common";
 import DatabaseService from "../../utils/storage/databaseService";
@@ -29,8 +29,8 @@ class ImportLocal extends React.Component<ImportLocalProps, ImportLocalState> {
   componentDidMount() {
     if (isElectron) {
       const { ipcRenderer } = window.require("electron");
-      if (!localStorage.getItem("storageLocation")) {
-        localStorage.setItem(
+      if (!ConfigService.getItem("storageLocation")) {
+        ConfigService.setItem(
           "storageLocation",
           ipcRenderer.sendSync("storage-location", "ping")
         );
@@ -42,7 +42,7 @@ class ImportLocal extends React.Component<ImportLocalProps, ImportLocalState> {
       }
       window.addEventListener(
         "focus",
-        (event) => {
+        () => {
           const _filePath = ipcRenderer.sendSync("get-file-data");
           if (_filePath && _filePath !== ".") {
             this.handleFilePath(_filePath);
@@ -81,18 +81,19 @@ class ImportLocal extends React.Component<ImportLocalProps, ImportLocalState> {
     });
   };
   handleJump = (book: BookModel) => {
-    localStorage.setItem("tempBook", JSON.stringify(book));
-    BookUtil.redirectBook(book, this.props.t);
+    ConfigService.setItem("tempBook", JSON.stringify(book));
+    BookUtil.redirectBook(book);
     this.props.history.push("/manager/home");
   };
   handleAddBook = (book: BookModel, buffer: ArrayBuffer) => {
-    return new Promise<void>((resolve, reject) => {
+    return new Promise<void>((resolve) => {
       if (this.state.isOpenFile) {
         if (
           ConfigService.getReaderConfig("isImportPath") !== "yes" &&
           ConfigService.getReaderConfig("isPreventAdd") !== "yes"
         ) {
           BookUtil.addBook(book.key, book.format.toLowerCase(), buffer);
+          CoverUtil.addCover(book);
         }
         if (ConfigService.getReaderConfig("isPreventAdd") === "yes") {
           this.handleJump(book);
@@ -141,7 +142,7 @@ class ImportLocal extends React.Component<ImportLocalProps, ImportLocalState> {
   };
 
   getMd5WithBrowser = async (file: any) => {
-    return new Promise<void>(async (resolve, reject) => {
+    return new Promise<void>(async (resolve) => {
       const md5 = await calculateFileMD5(file);
       if (!md5) {
         toast.error(this.props.t("Import failed"));
@@ -150,7 +151,7 @@ class ImportLocal extends React.Component<ImportLocalProps, ImportLocalState> {
         try {
           await this.handleBook(file, md5);
         } catch (error) {
-          console.log(error);
+          console.error(error);
         }
 
         return resolve();
@@ -165,9 +166,10 @@ class ImportLocal extends React.Component<ImportLocalProps, ImportLocalState> {
       .toLocaleLowerCase();
     let bookName = file.name.substr(0, file.name.length - extension.length - 1);
     let result: BookModel;
-    return new Promise<void>((resolve, reject) => {
+    return new Promise<void>(async (resolve) => {
       let isRepeat = false;
-      if (this.props.books.length > 0) {
+
+      if (this.props.books && this.props.books.length > 0) {
         this.props.books.forEach((item) => {
           if (item.md5 === md5 && item.size === file.size) {
             isRepeat = true;
@@ -176,11 +178,21 @@ class ImportLocal extends React.Component<ImportLocalProps, ImportLocalState> {
           }
         });
       }
-      if (this.props.deletedBooks.length > 0) {
+      if (this.props.deletedBooks && this.props.deletedBooks.length > 0) {
         this.props.deletedBooks.forEach((item) => {
           if (item.md5 === md5 && item.size === file.size) {
             isRepeat = true;
             toast.error(this.props.t("Duplicate book in trash bin"));
+            return resolve();
+          }
+        });
+      }
+      if (!this.props.books) {
+        let books = await DatabaseService.getAllRecords("books");
+        books.forEach((item) => {
+          if (item.md5 === md5 && item.size === file.size) {
+            isRepeat = true;
+            toast.error(this.props.t("Duplicate book"));
             return resolve();
           }
         });
@@ -206,6 +218,8 @@ class ImportLocal extends React.Component<ImportLocalProps, ImportLocalState> {
                 ConfigService.getReaderConfig("isSliding") === "yes"
                   ? "sliding"
                   : "",
+                ConfigService.getReaderConfig("isBionic"),
+                ConfigService.getReaderConfig("convertChinese"),
                 Kookit
               );
               result = await BookHelper.generateBook(
@@ -218,17 +232,20 @@ class ImportLocal extends React.Component<ImportLocalProps, ImportLocalState> {
                 rendition
               );
               if (
-                ConfigService.getReaderConfig("isPrecacheBook") === "yes" &&
+                (ConfigService.getReaderConfig("isPrecacheBook") === "yes" ||
+                  (this.props.isAuthed &&
+                    ConfigService.getReaderConfig("isDisableMobilePrecache") !==
+                      "yes")) &&
                 extension !== "pdf"
               ) {
                 let cache = await rendition.preCache(file_content);
-                if (cache !== "err") {
+                if (cache !== "err" || cache) {
                   BookUtil.addBook("cache-" + result.key, "zip", cache);
                 }
               }
             } catch (error) {
-              console.log(error);
-              throw error;
+              console.error(error);
+              return resolve();
             }
 
             clickFilePath = "";
@@ -323,19 +340,29 @@ class ImportLocal extends React.Component<ImportLocalProps, ImportLocalState> {
                 className="import-book-box"
                 onClick={async () => {
                   const { ipcRenderer } = window.require("electron");
-                  const path = window.require("path");
                   let filePaths = await ipcRenderer.invoke(
                     "select-book",
                     "ping"
                   );
                   for (let filePath of filePaths) {
-                    let response = await fetch(filePath);
-                    let blob = await response.blob();
-                    let fileName = path.basename(filePath);
-                    let file: any = new File([blob], fileName);
-                    file.path = filePath;
-                    console.log(file, "file");
-                    await this.getMd5WithBrowser(file);
+                    try {
+                      const fs = window.require("fs").promises;
+                      const path = window.require("path");
+                      const buffer = await fs.readFile(filePath);
+
+                      let arraybuffer = new Uint8Array(buffer).buffer;
+                      let blob = new Blob([arraybuffer]);
+                      let fileName = path.basename(filePath);
+                      let file: any = new File([blob], fileName);
+                      file.path = filePath;
+
+                      await this.getMd5WithBrowser(file);
+                    } catch (error) {
+                      console.error(
+                        `Error processing file ${filePath}:`,
+                        error
+                      );
+                    }
                   }
                 }}
               ></div>

@@ -1,8 +1,12 @@
-import ConfigService from "../../utils/storage/configService";
+import {
+  ConfigService,
+  TokenService,
+} from "../../assets/lib/kookit-extra-browser.min";
 import BookModel from "../../models/Book";
 import PluginModel from "../../models/Plugin";
 import { Dispatch } from "redux";
 import DatabaseService from "../../utils/storage/databaseService";
+import { fetchUserInfo } from "../../utils/request/user";
 
 export function handleBooks(books: BookModel[]) {
   return { type: "HANDLE_BOOKS", payload: books };
@@ -19,17 +23,20 @@ export function handleSearchResults(searchResults: number[]) {
 export function handleSearch(isSearch: boolean) {
   return { type: "HANDLE_SEARCH", payload: isSearch };
 }
-export function handleTipDialog(isTipDialog: boolean) {
-  return { type: "HANDLE_TIP_DIALOG", payload: isTipDialog };
+export function handleUserInfo(userInfo: any) {
+  return { type: "HANDLE_USER_INFO", payload: userInfo };
 }
 export function handleDetailDialog(isDetailDialog: boolean) {
   return { type: "HANDLE_DETAIL_DIALOG", payload: isDetailDialog };
 }
-export function handleTip(tip: string) {
-  return { type: "HANDLE_TIP", payload: tip };
-}
 export function handleSetting(isSettingOpen: boolean) {
   return { type: "HANDLE_SETTING", payload: isSettingOpen };
+}
+export function handleSettingMode(settingMode: string) {
+  return { type: "HANDLE_SETTING_MODE", payload: settingMode };
+}
+export function handleSettingDrive(settingDrive: string) {
+  return { type: "HANDLE_SETTING_DRIVE", payload: settingDrive };
 }
 export function handleAbout(isAboutOpen: boolean) {
   return { type: "HANDLE_ABOUT", payload: isAboutOpen };
@@ -56,6 +63,9 @@ export function handleSelectedBooks(selectedBooks: string[]) {
 export function handleNewWarning(isNewWarning: boolean) {
   return { type: "HANDLE_NEW_WARNING", payload: isNewWarning };
 }
+export function handleShowSupport(isShowSupport: boolean) {
+  return { type: "HANDLE_SHOW_SUPPORT", payload: isShowSupport };
+}
 export function handleBookSort(isBookSort: boolean) {
   return { type: "HANDLE_BOOK_SORT", payload: isBookSort };
 }
@@ -64,6 +74,9 @@ export function handleNoteSort(isNoteSort: boolean) {
 }
 export function handleFeedbackDialog(mode: boolean) {
   return { type: "HANDLE_FEEDBACK_DIALOG", payload: mode };
+}
+export function handleAuthed(isAuthed: boolean) {
+  return { type: "HANDLE_AUTHED", payload: isAuthed };
 }
 export function handleBookSortCode(bookSortCode: {
   sort: number;
@@ -89,12 +102,39 @@ export function handleFetchBooks() {
     });
   };
 }
-
+export function handleFetchUserInfo() {
+  return async (dispatch: Dispatch) => {
+    let response = await fetchUserInfo();
+    let userInfo: any = null;
+    if (response.code === 200) {
+      userInfo = response.data;
+    }
+    if (
+      userInfo &&
+      userInfo.valid_until < parseInt(new Date().getTime() / 1000 + "")
+    ) {
+      dispatch(handleShowSupport(true));
+    }
+    dispatch(handleUserInfo(userInfo));
+  };
+}
 export function handleFetchPlugins() {
   return async (dispatch: Dispatch) => {
     DatabaseService.getAllRecords("plugins").then((value) => {
       dispatch(handlePlugins(value));
     });
+  };
+}
+export function handleFetchAuthed() {
+  return (dispatch: Dispatch) => {
+    try {
+      TokenService.getToken("is_authed").then((value) => {
+        let isAuthed = value === "yes";
+        dispatch(handleAuthed(isAuthed));
+      });
+    } catch (error) {
+      console.error(error);
+    }
   };
 }
 export function handleFetchBookSortCode() {

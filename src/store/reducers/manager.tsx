@@ -1,3 +1,5 @@
+import { ConfigService } from "../../assets/lib/kookit-extra-browser.min";
+
 const initState = {
   books: null,
   plugins: null,
@@ -6,21 +8,24 @@ const initState = {
   isSearch: false,
   isOpenFeedbackDialog: false,
   isAboutOpen: false,
-  isBookSort: localStorage.getItem("bookSortCode") ? true : false,
+  isBookSort: ConfigService.getReaderConfig("bookSortCode") ? true : false,
   isNoteSort: false,
+  isAuthed: false,
+  userInfo: null,
   isSettingOpen: false,
   viewMode: "card",
   isSortDisplay: false,
   isShowLoading: false,
   isNewWarning: false,
-  isTipDialog: false,
   isDetailDialog: false,
   isShowNew: false,
+  isShowSupport: false,
   bookSortCode: { sort: 1, order: 2 },
   noteSortCode: { sort: 2, order: 2 },
   isSelectBook: false,
   message: "Addition successful",
-  tip: "",
+  settingMode: "general",
+  settingDrive: "",
   selectedBooks: [],
 };
 export function manager(
@@ -48,7 +53,21 @@ export function manager(
         ...state,
         isOpenFeedbackDialog: action.payload,
       };
-
+    case "HANDLE_USER_INFO":
+      return {
+        ...state,
+        userInfo: action.payload,
+      };
+    case "HANDLE_SETTING_MODE":
+      return {
+        ...state,
+        settingMode: action.payload,
+      };
+    case "HANDLE_SETTING_DRIVE":
+      return {
+        ...state,
+        settingDrive: action.payload,
+      };
     case "HANDLE_SEARCH_BOOKS":
       return {
         ...state,
@@ -59,25 +78,20 @@ export function manager(
         ...state,
         isSelectBook: action.payload,
       };
+    case "HANDLE_AUTHED":
+      return {
+        ...state,
+        isAuthed: action.payload,
+      };
     case "HANDLE_SELECTED_BOOKS":
       return {
         ...state,
         selectedBooks: action.payload,
       };
-    case "HANDLE_TIP_DIALOG":
-      return {
-        ...state,
-        isTipDialog: action.payload,
-      };
     case "HANDLE_DETAIL_DIALOG":
       return {
         ...state,
         isDetailDialog: action.payload,
-      };
-    case "HANDLE_TIP":
-      return {
-        ...state,
-        tip: action.payload,
       };
     case "HANDLE_SEARCH":
       return {
@@ -120,6 +134,11 @@ export function manager(
       return {
         ...state,
         isShowLoading: action.payload,
+      };
+    case "HANDLE_SHOW_SUPPORT":
+      return {
+        ...state,
+        isShowSupport: action.payload,
       };
     case "HANDLE_SHOW_NEW":
       return {

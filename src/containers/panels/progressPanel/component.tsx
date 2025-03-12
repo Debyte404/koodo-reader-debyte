@@ -2,7 +2,6 @@ import React from "react";
 import "./progressPanel.css";
 import { Trans } from "react-i18next";
 import { ProgressPanelProps, ProgressPanelState } from "./interface";
-import ConfigService from "../../../utils/storage/configService";
 import _ from "underscore";
 class ProgressPanel extends React.Component<
   ProgressPanelProps,
@@ -16,9 +15,6 @@ class ProgressPanel extends React.Component<
       targetChapterIndex: 0,
       targetPage: 0,
       isEntered: false,
-      isSingle:
-        ConfigService.getReaderConfig("readerMode") &&
-        ConfigService.getReaderConfig("readerMode") !== "double",
     };
   }
   async UNSAFE_componentWillReceiveProps(nextProps: ProgressPanelProps) {
@@ -49,13 +45,10 @@ class ProgressPanel extends React.Component<
   };
   async handlePageNum(rendition) {
     let pageInfo = await rendition.getProgress();
+
     this.setState({
-      currentPage: this.state.isSingle
-        ? pageInfo.currentPage
-        : pageInfo.currentPage * 2 - 1,
-      totalPage: this.state.isSingle
-        ? pageInfo.totalPage
-        : (pageInfo.totalPage - 1) * 2,
+      currentPage: pageInfo.currentPage,
+      totalPage: pageInfo.totalPage,
     });
   }
   onProgressChange = async (event: any) => {

@@ -3,8 +3,8 @@ import "./sidebar.css";
 import { sideMenu } from "../../constants/sideMenu";
 import { SidebarProps, SidebarState } from "./interface";
 import { withRouter } from "react-router-dom";
-import ConfigService from "../../utils/storage/configService";
-import { openExternalUrl } from "../../utils/common";
+import { ConfigService } from "../../assets/lib/kookit-extra-browser.min";
+import { openExternalUrl, WEBSITE_URL } from "../../utils/common";
 import DeletePopup from "../../components/dialogs/deletePopup";
 import { Trans } from "react-i18next";
 class Sidebar extends React.Component<SidebarProps, SidebarState> {
@@ -65,7 +65,7 @@ class Sidebar extends React.Component<SidebarProps, SidebarState> {
   };
   render() {
     const renderSideMenu = () => {
-      return sideMenu.map((item, index) => {
+      return sideMenu.map((item) => {
         return (
           <li
             key={item.name}
@@ -229,12 +229,16 @@ class Sidebar extends React.Component<SidebarProps, SidebarState> {
               ConfigService.getReaderConfig("appSkin") === "night" ||
               (ConfigService.getReaderConfig("appSkin") === "system" &&
                 ConfigService.getReaderConfig("isOSNight") === "yes")
-                ? "./assets/label_light.png"
-                : "./assets/label.png"
+                ? require(`../../assets/images/logo-dark${
+                    this.props.isAuthed ? "-pro" : ""
+                  }.png`)
+                : require(`../../assets/images/logo-light${
+                    this.props.isAuthed ? "-pro" : ""
+                  }.png`)
             }
             alt=""
             onClick={() => {
-              this.handleJump("https://koodoreader.com");
+              this.handleJump(WEBSITE_URL);
             }}
             style={this.state.isCollapsed ? { display: "none" } : {}}
             className="logo"

@@ -1,12 +1,13 @@
 const {
   app,
   BrowserWindow,
-  BrowserView,
+  WebContentsView,
   Menu,
   ipcMain,
   dialog,
   powerSaveBlocker,
   nativeTheme,
+  protocol
 } = require("electron");
 const path = require("path");
 const isDev = require("electron-is-dev");
@@ -15,11 +16,14 @@ const store = new Store();
 const fs = require("fs");
 const configDir = app.getPath("userData");
 const dirPath = path.join(configDir, "uploads");
+const packageJson = require("./package.json");
 let mainWin;
 let readerWindow;
 let urlWindow;
 let mainView;
+let chatView;
 let dbConnection = {};
+let syncUtilCache = {};
 const singleInstance = app.requestSingleInstanceLock();
 var filePath = null;
 if (process.platform != "darwin" && process.argv.length >= 2) {
@@ -49,13 +53,6 @@ if (os.platform() === 'linux') {
 // Single Instance Lock
 if (!singleInstance) {
   app.quit();
-  if (filePath) {
-    fs.writeFileSync(
-      path.join(dirPath, "log.json"),
-      JSON.stringify({ filePath }),
-      "utf-8"
-    );
-  }
 } else {
   app.on("second-instance", (event, argv, workingDir) => {
     if (mainWin) {
@@ -63,6 +60,17 @@ if (!singleInstance) {
       mainWin.focus();
     }
   });
+}
+if (filePath) {
+  // Make sure the directory exists
+  if (!fs.existsSync(dirPath)) {
+    fs.mkdirSync(dirPath, { recursive: true });
+  }
+  fs.writeFileSync(
+    path.join(dirPath, "log.json"),
+    JSON.stringify({ filePath }),
+    "utf-8"
+  );
 }
 const getDBConnection = (dbName, storagePath, sqlStatement) => {
   if (!dbConnection[dbName]) {
@@ -75,12 +83,47 @@ const getDBConnection = (dbName, storagePath, sqlStatement) => {
   }
   return dbConnection[dbName];
 }
+const getSyncUtil = async (config, isUseCache = true) => {
+  if (!isUseCache || !syncUtilCache[config.service]) {
+    const { SyncUtil, TokenService, ThirdpartyRequest } = await import('./src/assets/lib/kookit-extra.min.mjs');
+    let thirdpartyRequest = new ThirdpartyRequest(TokenService);
+
+    syncUtilCache[config.service] = new SyncUtil(config.service, config, config.storagePath, thirdpartyRequest);
+  }
+  return syncUtilCache[config.service];
+}
+const removeSyncUtil = (config) => {
+  if (syncUtilCache[config.service]) {
+    syncUtilCache[config.service] = null;
+  }
+}
+// Simple encryption function
+const encrypt = (text, key) => {
+  let result = "";
+  for (let i = 0; i < text.length; i++) {
+    const charCode = text.charCodeAt(i) ^ key.charCodeAt(i % key.length);
+    result += String.fromCharCode(charCode);
+  }
+  return Buffer.from(result).toString("base64");
+}
+
+// Simple decryption function
+const decrypt = (encryptedText, key) => {
+  const buff = Buffer.from(encryptedText, "base64").toString();
+  let result = "";
+  for (let i = 0; i < buff.length; i++) {
+    const charCode = buff.charCodeAt(i) ^ key.charCodeAt(i % key.length);
+    result += String.fromCharCode(charCode);
+  }
+  return result;
+}
 const createMainWin = () => {
   mainWin = new BrowserWindow(options);
 
   if (!isDev) {
     Menu.setApplicationMenu(null);
   }
+
   const urlLocation = isDev
     ? "http://localhost:3000"
     : `file://${path.join(__dirname, "./build/index.html")}`;
@@ -91,19 +134,28 @@ const createMainWin = () => {
   });
   mainWin.on("resize", () => {
     if (mainView) {
-      let [width, height] = mainWin.getSize()
+      if (!mainWin) return
+      let { width, height } = mainWin.getContentBounds()
       mainView.setBounds({ x: 0, y: 0, width: width, height: height })
+    }
+    if (chatView) {
+      if (!mainWin) return
+      let { width, height } = mainWin.getContentBounds()
+      chatView.webContents.executeJavaScript(`
+          window.$chatwoot.toggle('close');
+        `)
+      chatView.setBounds({ x: width - 80, y: height - 100, width: 80, height: 80 })
     }
   });
   mainWin.on("maximize", () => {
     if (mainView) {
-      let [width, height] = mainWin.getSize()
+      let { width, height } = mainWin.getContentBounds()
       mainView.setBounds({ x: 0, y: 0, width: width, height: height })
     }
   });
   mainWin.on("unmaximize", () => {
     if (mainView) {
-      let [width, height] = mainWin.getSize()
+      let { width, height } = mainWin.getContentBounds()
       mainView.setBounds({ x: 0, y: 0, width: width, height: height })
     }
   });
@@ -147,7 +199,6 @@ const createMainWin = () => {
     readerWindow.on("close", (event) => {
       if (!readerWindow.isDestroyed()) {
         let bounds = readerWindow.getBounds();
-        console.log(bounds, 'boudns')
         if (bounds.width > 0 && bounds.height > 0) {
           store.set({
             windowWidth: bounds.width,
@@ -176,19 +227,39 @@ const createMainWin = () => {
 
   });
   ipcMain.handle("cloud-upload", async (event, config) => {
-    let { service } = config;
-    const { SyncUtil } = await import('./src/assets/lib/kookit-extra.min.mjs');
-    let syncUtil = new SyncUtil(service, config, dirPath);
-    let result = await syncUtil.uploadFile(config.fileName, config.fileName, "backup");
+    let syncUtil = await getSyncUtil(config, config.isUseCache);
+    let result = await syncUtil.uploadFile(config.fileName, config.fileName, config.type);
     return result;
   });
+
   ipcMain.handle("cloud-download", async (event, config) => {
-    let { service } = config;
-    const { SyncUtil } = await import('./src/assets/lib/kookit-extra.min.mjs');
-    let syncUtil = new SyncUtil(service, config, dirPath);
-    let result = await syncUtil.downloadFile(config.fileName, config.fileName, "backup");
+    let syncUtil = await getSyncUtil(config);
+    let result = await syncUtil.downloadFile(config.fileName, (config.isTemp ? "temp-" : "") + config.fileName, config.type);
     return result;
   });
+
+  ipcMain.handle("cloud-delete", async (event, config) => {
+    let syncUtil = await getSyncUtil(config, config.isUseCache);
+    let result = await syncUtil.deleteFile(config.fileName, config.type);
+    return result;
+  });
+
+  ipcMain.handle("cloud-list", async (event, config) => {
+    let syncUtil = await getSyncUtil(config);
+    let result = await syncUtil.listFiles(config.type);
+    return result;
+  });
+
+  ipcMain.handle("cloud-exist", async (event, config) => {
+    let syncUtil = await getSyncUtil(config);
+    let result = await syncUtil.isExist(config.fileName, config.type);
+    return result;
+  });
+  ipcMain.handle("cloud-close", async (event, config) => {
+    removeSyncUtil(config);
+    return "pong";
+  });
+
   ipcMain.handle("clear-tts", async (event, config) => {
     if (!fs.existsSync(path.join(dirPath, "tts"))) {
       return "pong";
@@ -197,7 +268,6 @@ const createMainWin = () => {
       try {
         await fsExtra.remove(path.join(dirPath, "tts"));
         await fsExtra.mkdir(path.join(dirPath, "tts"));
-        console.log("success!");
         return "pong";
       } catch (err) {
         console.error(err);
@@ -211,6 +281,38 @@ const createMainWin = () => {
     });
     return path.filePaths[0];
   });
+  ipcMain.handle("encrypt-data", async (event, config) => {
+    const { TokenService } = await import('./src/assets/lib/kookit-extra.min.mjs');
+    let fingerprint = await TokenService.getFingerprint();
+    let encrypted = encrypt(config.token, fingerprint);
+    store.set("encryptedToken", encrypted);
+    return "pong";
+  });
+  ipcMain.handle("decrypt-data", async (event) => {
+    let encrypted = store.get("encryptedToken");
+    if (!encrypted) return "";
+    const { TokenService } = await import('./src/assets/lib/kookit-extra.min.mjs');
+    let fingerprint = await TokenService.getFingerprint();
+    let decrypted = decrypt(encrypted, fingerprint);
+    if (decrypted.startsWith("{") && decrypted.endsWith("}")) {
+      return decrypted
+    } else {
+      const { safeStorage } = require("electron")
+      decrypted = safeStorage.decryptString(Buffer.from(encrypted, "base64"));
+      let newEncrypted = encrypt(decrypted, fingerprint);
+      store.set("encryptedToken", newEncrypted);
+      return decrypted;
+    }
+
+  });
+  ipcMain.handle("get-mac", async (event, config) => {
+    const { machineIdSync } = require('node-machine-id');
+    return machineIdSync();
+  });
+  ipcMain.handle("get-store-value", async (event, config) => {
+    return store.get(config.key);
+  });
+
   ipcMain.handle("reset-reader-position", async (event) => {
     store.delete("windowX");
     store.delete("windowY");
@@ -287,11 +389,11 @@ const createMainWin = () => {
     delete dbConnection[dbName];
     db.close();
   });
+
   ipcMain.on("user-data", (event, arg) => {
     event.returnValue = dirPath;
   });
   ipcMain.handle("hide-reader", (event, arg) => {
-    console.log(readerWindow)
     if (!readerWindow.isDestroyed() && readerWindow && readerWindow.isFocused()) {
       readerWindow.minimize();
       event.returnvalue = true;
@@ -327,11 +429,87 @@ const createMainWin = () => {
       createMainWin();
     }
   });
+  ipcMain.handle("new-chat", (event, config) => {
+    if (mainWin && !chatView) {
+      chatView = new WebContentsView({ ...options, transparent: true })
+      mainWin.contentView.addChildView(chatView)
+      let { width, height } = mainWin.getContentBounds()
+      chatView.setBounds({ x: width - 80, y: height - 100, width: 80, height: 80 })
+      chatView.setBackgroundColor("#00000000");
+      chatView.webContents.loadURL(config.url)
+      chatView.webContents.insertCSS(`html, body { overflow: hidden; background: transparent} #cw-widget-holder { width: calc(100% - 20px) !important; height: calc(100% - 20px) !important; margin: 0 !important; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.2); overflow: hidden !important; right: 10px !important; top: 10px !important; }`);
+      chatView.webContents.once('did-navigate', () => {
+
+        // THIS WORKS!!! So did-navigate is working!
+        console.log("Main view logs this no problem....");
+        chatView.webContents.once('dom-ready', () => {
+
+          // NOT WORKING!!! Why?
+          chatView.webContents.executeJavaScript(`
+            const script = document.createElement('script');
+            script.type = 'text/javascript';
+            script.text = \`
+              (function (d, t) {
+                var BASE_URL = "https://app.chatwoot.com";
+                var g = d.createElement(t),
+                  s = d.getElementsByTagName(t)[0];
+                g.src = BASE_URL + "/packs/js/sdk.js";
+                g.defer = true;
+                g.async = true;
+                s.parentNode.insertBefore(g, s);
+                g.onload = function () {
+                  window.chatwootSDK.run({
+                    websiteToken: "svaD5wxfU5UY1r5ZzpMtLqv2",
+                    baseUrl: BASE_URL,
+                  });
+                  window.addEventListener('chatwoot:ready', function () {
+                    window.$chatwoot.setLocale('${config.locale}');
+                    window.$chatwoot.setCustomAttributes({
+                      version: '${packageJson.version}',
+                      client: 'desktop',
+                    });
+                  });
+                };
+
+              })(document, "script");
+            \`;
+            document.head.appendChild(script);
+          `)
+          event.returnvalue = true;
+
+        })
+      });
+      chatView.webContents.on('focus', () => {
+        if (!mainWin) return
+        let { width, height } = mainWin.getContentBounds()
+        chatView.setBounds({ x: width - 400, y: height - 520, width: 400, height: 500 })
+        chatView.webContents.executeJavaScript(`
+          window.$chatwoot.toggle('open');
+        `)
+      });
+      chatView.webContents.on('blur', () => {
+        if (!mainWin) return
+        let { width, height } = mainWin.getContentBounds()
+        chatView.setBounds({ x: width - 80, y: height - 100, width: 80, height: 80 })
+        chatView.webContents.executeJavaScript(`
+          window.$chatwoot.toggle('close');
+        `)
+
+      });
+    }
+  });
+  ipcMain.handle("exit-chat", (event, config) => {
+    if (mainWin && chatView) {
+      mainWin.contentView.removeChildView(chatView)
+    }
+  });
+
+
   ipcMain.handle("new-tab", (event, config) => {
     if (mainWin) {
-      mainView = new BrowserView(options)
-      mainWin.setBrowserView(mainView)
-      let [width, height] = mainWin.getSize()
+      mainView = new WebContentsView(options)
+      mainWin.contentView.addChildView(mainView)
+      let { width, height } = mainWin.getContentBounds()
       mainView.setBounds({ x: 0, y: 0, width: width, height: height })
       mainView.webContents.loadURL(config.url)
     }
@@ -343,13 +521,13 @@ const createMainWin = () => {
   });
   ipcMain.handle("adjust-tab-size", (event, config) => {
     if (mainWin && mainView) {
-      let [width, height] = mainWin.getSize()
+      let { width, height } = mainWin.getContentBounds()
       mainView.setBounds({ x: 0, y: 0, width: width, height: height })
     }
   });
   ipcMain.handle("exit-tab", (event, message) => {
     if (mainWin && mainView) {
-      mainWin.setBrowserView(null)
+      mainWin.contentView.removeChildView(mainView)
     }
   });
   ipcMain.handle("enter-tab-fullscreen", () => {
@@ -378,7 +556,7 @@ const createMainWin = () => {
   });
   ipcMain.handle("open-url", (event, config) => {
     if (!urlWindow || urlWindow.isDestroyed()) {
-      urlWindow = new BrowserWindow(options);
+      urlWindow = new BrowserWindow();
     }
     urlWindow.loadURL(config.url);
   });
@@ -457,6 +635,19 @@ const createMainWin = () => {
     event.returnValue = filePath;
     filePath = null;
   });
+  ipcMain.on("check-file-data", function (event) {
+    if (fs.existsSync(path.join(dirPath, "log.json"))) {
+      const _data = JSON.parse(
+        fs.readFileSync(path.join(dirPath, "log.json"), "utf-8") || "{}"
+      );
+      if (_data && _data.filePath) {
+        filePath = _data.filePath;
+      }
+    }
+
+    event.returnValue = filePath;
+    filePath = null;
+  });
 };
 app.on("ready", () => {
   createMainWin();
@@ -467,3 +658,40 @@ app.on("window-all-closed", () => {
 app.on("open-file", (e, pathToFile) => {
   filePath = pathToFile;
 });
+// Register protocol handler
+app.setAsDefaultProtocolClient('koodo-reader');
+// Handle deep linking
+app.on('second-instance', (event, commandLine) => {
+  const url = commandLine.pop();
+  if (url) {
+    handleCallback(url);
+  }
+});
+
+// Handle MacOS deep linking
+app.on('open-url', (event, url) => {
+  event.preventDefault();
+  handleCallback(url);
+});
+
+const handleCallback = (url) => {
+  try {
+    // 检查 URL 是否有效
+    if (!url.startsWith('koodo-reader://')) {
+      console.error('Invalid URL format:', url);
+      return;
+    }
+
+    // 解析 URL
+    const parsedUrl = new URL(url);
+    const code = parsedUrl.searchParams.get('code');
+    const state = parsedUrl.searchParams.get('state');
+
+    if (code && mainWin) {
+      mainWin.webContents.send('oauth-callback', { code, state });
+    }
+  } catch (error) {
+    console.error('Error handling callback URL:', error);
+    console.log('Problematic URL:', url);
+  }
+};

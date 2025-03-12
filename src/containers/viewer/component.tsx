@@ -3,7 +3,6 @@ import { ViewerProps, ViewerState } from "./interface";
 import { withRouter } from "react-router-dom";
 import BookUtil from "../../utils/file/bookUtil";
 import PopupMenu from "../../components/popups/popupMenu";
-import ConfigService from "../../utils/storage/configService";
 import Background from "../../components/background";
 import toast from "react-hot-toast";
 import StyleUtil from "../../utils/reader/styleUtil";
@@ -11,14 +10,15 @@ import "./index.css";
 import { HtmlMouseEvent } from "../../utils/reader/mouseEvent";
 import ImageViewer from "../../components/imageViewer";
 import { getIframeDoc } from "../../utils/reader/docUtil";
-import { tsTransform } from "../../utils/reader/langUtil";
-import { binicReadingProcess } from "../../utils/reader/bionicUtil";
 import PopupBox from "../../components/popups/popupBox";
 import Note from "../../models/Note";
 import PageWidget from "../pageWidget";
 import { getPageWidth, scrollContents } from "../../utils/common";
 import _ from "underscore";
-import { BookHelper } from "../../assets/lib/kookit-extra-browser.min";
+import {
+  BookHelper,
+  ConfigService,
+} from "../../assets/lib/kookit-extra-browser.min";
 import * as Kookit from "../../assets/lib/kookit.min";
 declare var window: any;
 let lock = false; //prevent from clicking too fasts
@@ -40,7 +40,6 @@ class Viewer extends React.Component<ViewerProps, ViewerState> {
           "recordLocation",
           {}
         ).chapterTitle || "",
-      readerMode: ConfigService.getReaderConfig("readerMode") || "double",
       isDisablePopup: ConfigService.getReaderConfig("isDisablePopup") === "yes",
       isTouch: ConfigService.getReaderConfig("isTouch") === "yes",
       margin: parseInt(ConfigService.getReaderConfig("margin")) || 0,
@@ -68,7 +67,12 @@ class Viewer extends React.Component<ViewerProps, ViewerState> {
     this.handleRenderBook();
     //make sure page width is always 12 times, section = Math.floor(element.clientWidth / 12), or text will be blocked
     this.setState(
-      getPageWidth(this.state.readerMode, this.state.scale, this.state.margin)
+      getPageWidth(
+        this.props.readerMode,
+        this.state.scale,
+        this.state.margin,
+        this.props.isNavLocked
+      )
     );
     this.props.handleRenderBookFunc(this.handleRenderBook);
 
@@ -125,15 +129,28 @@ class Viewer extends React.Component<ViewerProps, ViewerState> {
       path
     ).then(async (result: any) => {
       if (!result) {
-        toast.error(this.props.t("Book not exsit"));
-        return;
+        if (this.props.defaultSyncOption) {
+          let result = await BookUtil.downloadBook(key, format.toLowerCase());
+          if (result) {
+            toast.success(this.props.t("Offline successful"));
+          } else {
+            toast.error(this.props.t("Offline failed"));
+            return;
+          }
+        } else {
+          toast.error(this.props.t("Book not exists"));
+          return;
+        }
       }
+
       let rendition = BookHelper.getRendtion(
         result,
         isCacheExsit ? "CACHE" : format,
-        this.state.readerMode,
+        this.props.readerMode,
         this.props.currentBook.charset,
         ConfigService.getReaderConfig("isSliding") === "yes" ? "sliding" : "",
+        ConfigService.getReaderConfig("isBionic"),
+        ConfigService.getReaderConfig("convertChinese"),
         Kookit
       );
 
@@ -150,7 +167,7 @@ class Viewer extends React.Component<ViewerProps, ViewerState> {
     HtmlMouseEvent(
       rendition,
       this.props.currentBook.key,
-      this.state.readerMode
+      this.props.readerMode
     );
     let chapters = rendition.getChapter();
     let chapterDocs = rendition.getChapterDoc();
@@ -164,8 +181,7 @@ class Viewer extends React.Component<ViewerProps, ViewerState> {
     this.setState({ rendition });
 
     StyleUtil.addDefaultCss();
-    tsTransform();
-    binicReadingProcess();
+    rendition.tsTransform();
     // rendition.setStyle(StyleUtil.getCustomCss());
     let bookLocation: {
       text: string;
@@ -244,8 +260,7 @@ class Viewer extends React.Component<ViewerProps, ViewerState> {
       });
       scrollContents(chapter, bookLocation.chapterHref);
       StyleUtil.addDefaultCss();
-      tsTransform();
-      binicReadingProcess();
+      rendition.tsTransform();
       this.handleBindGesture();
       await this.handleHighlight(rendition);
       lock = true;
@@ -270,7 +285,7 @@ class Viewer extends React.Component<ViewerProps, ViewerState> {
   handleBindGesture = () => {
     let doc = getIframeDoc();
     if (!doc) return;
-    doc.addEventListener("click", (event) => {
+    doc.addEventListener("click", () => {
       this.props.handleLeaveReader("left");
       this.props.handleLeaveReader("right");
       this.props.handleLeaveReader("top");
@@ -348,21 +363,21 @@ class Viewer extends React.Component<ViewerProps, ViewerState> {
         )}
         <div
           className={
-            this.state.readerMode === "scroll"
+            this.props.readerMode === "scroll"
               ? "html-viewer-page scrolling-html-viewer-page"
               : "html-viewer-page"
           }
           id="page-area"
           style={
-            this.state.readerMode === "scroll" &&
+            this.props.readerMode === "scroll" &&
             document.body.clientWidth >= 570
               ? {
-                  marginLeft: this.state.pageOffset,
-                  marginRight: this.state.pageOffset,
-                  paddingLeft: "20px",
+                  // marginLeft: this.state.pageOffset,
+                  // marginRight: this.state.pageOffset,
+                  paddingLeft: "0px",
                   paddingRight: "15px",
-                  left: 0,
-                  right: 0,
+                  left: this.state.pageOffset,
+                  width: this.state.pageWidth,
                 }
               : {
                   left: this.state.pageOffset,

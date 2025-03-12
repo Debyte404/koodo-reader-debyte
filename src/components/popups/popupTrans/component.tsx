@@ -1,11 +1,16 @@
 import React from "react";
 import "./popupTrans.css";
 import { PopupTransProps, PopupTransState } from "./interface";
-import ConfigService from "../../../utils/storage/configService";
+import { ConfigService } from "../../../assets/lib/kookit-extra-browser.min";
 import axios from "axios";
 import { Trans } from "react-i18next";
 import toast from "react-hot-toast";
-import { openExternalUrl } from "../../../utils/common";
+import {
+  getDefaultTransTarget,
+  handleContextMenu,
+  openExternalUrl,
+  WEBSITE_URL,
+} from "../../../utils/common";
 import DatabaseService from "../../../utils/storage/databaseService";
 import { checkPlugin } from "../../../utils/common";
 declare var window: any;
@@ -38,6 +43,7 @@ class PopupTrans extends React.Component<PopupTransProps, PopupTransState> {
 
     this.handleTrans(originalText);
   }
+
   handleTrans = (text: string) => {
     let plutin = this.props.plugins.find(
       (item) => item.key === this.state.transService
@@ -52,7 +58,8 @@ class PopupTrans extends React.Component<PopupTransProps, PopupTransState> {
       .translate(
         text,
         ConfigService.getReaderConfig("transSource") || "",
-        ConfigService.getReaderConfig("transTarget") || "en",
+        ConfigService.getReaderConfig("transTarget") ||
+          getDefaultTransTarget(plutin.langList),
         axios,
         plutin.config
       )
@@ -66,7 +73,7 @@ class PopupTrans extends React.Component<PopupTransProps, PopupTransState> {
         }
       })
       .catch((err) => {
-        console.log(err);
+        console.error(err);
       });
   };
   handleChangeService(target: string) {
@@ -79,11 +86,22 @@ class PopupTrans extends React.Component<PopupTransProps, PopupTransState> {
         return;
       }
       let autoValue = plugin.autoValue;
-      this.setState({ transSource: autoValue, transTarget: "en" }, () => {
-        ConfigService.setReaderConfig("transTarget", "en");
-        ConfigService.setReaderConfig("transSource", autoValue);
-        this.handleTrans(this.props.originalText.replace(/(\r\n|\n|\r)/gm, ""));
-      });
+      this.setState(
+        {
+          transSource: autoValue,
+          transTarget: getDefaultTransTarget(plugin.langList),
+        },
+        () => {
+          ConfigService.setReaderConfig(
+            "transTarget",
+            getDefaultTransTarget(plugin?.langList)
+          );
+          ConfigService.setReaderConfig("transSource", autoValue);
+          this.handleTrans(
+            this.props.originalText.replace(/(\r\n|\n|\r)/gm, "")
+          );
+        }
+      );
     });
   }
   render() {
@@ -93,7 +111,7 @@ class PopupTrans extends React.Component<PopupTransProps, PopupTransState> {
           <div className="trans-service-selector-container">
             {this.props.plugins
               .filter((item) => item.type === "translation")
-              .map((item, index) => {
+              .map((item) => {
                 return (
                   <div
                     className={
@@ -133,6 +151,9 @@ class PopupTrans extends React.Component<PopupTransProps, PopupTransState> {
                 )}
                 id="trans-add-content-box"
                 className="trans-add-content-box"
+                onContextMenu={() => {
+                  handleContextMenu("trans-add-content-box");
+                }}
               />
               <div className="trans-add-button-container">
                 <div
@@ -144,9 +165,9 @@ class PopupTrans extends React.Component<PopupTransProps, PopupTransState> {
                       ConfigService.getReaderConfig("lang") === "zhTW" ||
                       ConfigService.getReaderConfig("lang") === "zhMO"
                     ) {
-                      openExternalUrl("https://www.koodoreader.com/zh/plugin");
+                      openExternalUrl(WEBSITE_URL + "/zh/plugin");
                     } else {
-                      openExternalUrl("https://www.koodoreader.com/en/plugin");
+                      openExternalUrl(WEBSITE_URL + "/en/plugin");
                     }
                   }}
                 >

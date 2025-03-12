@@ -1,3 +1,5 @@
 declare module "rc-color-picker" {}
-declare module "font-list" {}
-declare module "xlsx/xlsx.mjs";
+declare module "react-tooltip" {
+  export const Tooltip: any;
+  export default Tooltip;
+}

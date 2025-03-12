@@ -1,13 +1,17 @@
 import React from "react";
 import "./popupDict.css";
 import { PopupDictProps, PopupDictState } from "./interface";
-import ConfigService from "../../../utils/storage/configService";
+import { ConfigService } from "../../../assets/lib/kookit-extra-browser.min";
 import Parser from "html-react-parser";
-import * as DOMPurify from "dompurify";
+import DOMPurify from "dompurify";
 import axios from "axios";
 import DictHistory from "../../../models/DictHistory";
 import { Trans } from "react-i18next";
-import { openExternalUrl } from "../../../utils/common";
+import {
+  handleContextMenu,
+  openExternalUrl,
+  WEBSITE_URL,
+} from "../../../utils/common";
 import toast from "react-hot-toast";
 import DatabaseService from "../../../utils/storage/databaseService";
 import { checkPlugin } from "../../../utils/common";
@@ -94,7 +98,7 @@ class PopupDict extends React.Component<PopupDictProps, PopupDictState> {
         );
       }
     } catch (error) {
-      console.log(error);
+      console.error(error);
       this.setState({
         dictText: this.props.t("Error happened"),
       });
@@ -138,7 +142,7 @@ class PopupDict extends React.Component<PopupDictProps, PopupDictState> {
             >
               {this.props.plugins
                 .filter((item) => item.type === "dictionary")
-                .map((item, index) => {
+                .map((item) => {
                   return (
                     <option
                       value={item.key}
@@ -188,7 +192,7 @@ class PopupDict extends React.Component<PopupDictProps, PopupDictState> {
                   this.props.plugins.find(
                     (item) => item.key === this.state.dictService
                   )?.langList as any[]
-                ).map((item, index) => {
+                ).map((item) => {
                   return (
                     <option
                       value={item.code}
@@ -226,6 +230,9 @@ class PopupDict extends React.Component<PopupDictProps, PopupDictState> {
                 )}
                 id="trans-add-content-box"
                 className="trans-add-content-box"
+                onContextMenu={() => {
+                  handleContextMenu("trans-add-content-box");
+                }}
               />
               <div className="trans-add-button-container">
                 <div
@@ -237,9 +244,9 @@ class PopupDict extends React.Component<PopupDictProps, PopupDictState> {
                       ConfigService.getReaderConfig("lang") === "zhTW" ||
                       ConfigService.getReaderConfig("lang") === "zhMO"
                     ) {
-                      openExternalUrl("https://www.koodoreader.com/zh/plugin");
+                      openExternalUrl(WEBSITE_URL + "/zh/plugin");
                     } else {
-                      openExternalUrl("https://www.koodoreader.com/en/plugin");
+                      openExternalUrl(WEBSITE_URL + "/en/plugin");
                     }
                   }}
                 >
@@ -299,7 +306,7 @@ class PopupDict extends React.Component<PopupDictProps, PopupDictState> {
                   this.state.dictText + "<address></address>"
                 ) || " ",
                 {
-                  replace: (domNode) => {},
+                  replace: (_domNode) => {},
                 }
               )}
             </div>

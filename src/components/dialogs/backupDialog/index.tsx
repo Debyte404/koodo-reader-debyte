@@ -2,7 +2,6 @@ import {
   handleBackupDialog,
   handleTokenDialog,
   handleLoadingDialog,
-  handleTipDialog,
   handleFetchBooks,
 } from "../../../store/actions";
 import { connect } from "react-redux";
@@ -15,15 +14,16 @@ const mapStateToProps = (state: stateType) => {
     books: state.manager.books,
     bookmarks: state.reader.bookmarks,
     notes: state.reader.notes,
+    isAuthed: state.manager.isAuthed,
     digests: state.reader.digests,
     isOpenTokenDialog: state.backupPage.isOpenTokenDialog,
+    dataSourceList: state.backupPage.dataSourceList,
   };
 };
 const actionCreator = {
   handleBackupDialog,
   handleTokenDialog,
   handleLoadingDialog,
-  handleTipDialog,
   handleFetchBooks,
 };
 export default connect(

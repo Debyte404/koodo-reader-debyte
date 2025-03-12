@@ -5,7 +5,7 @@ import Note from "../../../models/Note";
 import { PopupOptionProps } from "./interface";
 import ColorOption from "../../colorOption";
 import { popupList } from "../../../constants/popupList";
-import ConfigService from "../../../utils/storage/configService";
+import { ConfigService } from "../../../assets/lib/kookit-extra-browser.min";
 import toast from "react-hot-toast";
 import { getSelection } from "../../../utils/reader/mouseEvent";
 import copy from "copy-text-to-clipboard";
@@ -39,6 +39,17 @@ class PopupOption extends React.Component<PopupOptionProps> {
     this.props.handleOriginalText(getSelection() || "");
   };
   handleDigest = async () => {
+    if (
+      ConfigService.getReaderConfig("pdfReaderMode") === "double" &&
+      this.props.currentBook.format === "PDF"
+    ) {
+      toast.error(
+        this.props.t(
+          "PDF files in double page mode does not support note taking yet"
+        )
+      );
+      return;
+    }
     let bookKey = this.props.currentBook.key;
     let cfi = JSON.stringify(
       ConfigService.getObjectConfig(

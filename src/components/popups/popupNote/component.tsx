@@ -8,7 +8,7 @@ import NoteModel from "../../../models/Note";
 import { Trans } from "react-i18next";
 import toast from "react-hot-toast";
 import { getIframeDoc } from "../../../utils/reader/docUtil";
-import ConfigService from "../../../utils/storage/configService";
+import { ConfigService } from "../../../assets/lib/kookit-extra-browser.min";
 import DatabaseService from "../../../utils/storage/databaseService";
 
 class PopupNote extends React.Component<PopupNoteProps, PopupNoteState> {
@@ -83,8 +83,18 @@ class PopupNote extends React.Component<PopupNoteProps, PopupNoteState> {
         this.props.handleNoteKey("");
       });
     } else {
+      if (
+        ConfigService.getReaderConfig("pdfReaderMode") === "double" &&
+        this.props.currentBook.format === "PDF"
+      ) {
+        toast.error(
+          this.props.t(
+            "PDF files in double page mode does not support note taking yet"
+          )
+        );
+        return;
+      }
       let bookKey = this.props.currentBook.key;
-
       let range = JSON.stringify(
         await this.props.htmlBook.rendition.getHightlightCoords(
           this.props.chapterDocIndex

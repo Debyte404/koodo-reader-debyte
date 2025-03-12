@@ -4,13 +4,15 @@ import {
   handleSortDisplay,
   handleSetting,
   handleAbout,
-  handleTipDialog,
-  handleTip,
   handleBackupDialog,
   handleFeedbackDialog,
   handleFetchBooks,
   handleFetchNotes,
+  handleFetchAuthed,
   handleFetchBookmarks,
+  handleFetchDefaultSyncOption,
+  handleFetchLoginOptionList,
+  handleFetchDataSourceList,
 } from "../../store/actions";
 import { stateType } from "../../store";
 import Header from "./component";
@@ -25,7 +27,8 @@ const mapStateToProps = (state: stateType) => {
     isCollapsed: state.sidebar.isCollapsed,
     isNewWarning: state.manager.isNewWarning,
     notes: state.reader.notes,
-
+    isAuthed: state.manager.isAuthed,
+    defaultSyncOption: state.backupPage.defaultSyncOption,
     isSortDisplay: state.manager.isSortDisplay,
   };
 };
@@ -35,11 +38,13 @@ const actionCreator = {
   handleSetting,
   handleAbout,
   handleFeedbackDialog,
-  handleTipDialog,
-  handleTip,
   handleFetchBooks,
   handleFetchNotes,
   handleFetchBookmarks,
+  handleFetchAuthed,
+  handleFetchDefaultSyncOption,
+  handleFetchLoginOptionList,
+  handleFetchDataSourceList,
 };
 export default connect(
   mapStateToProps,

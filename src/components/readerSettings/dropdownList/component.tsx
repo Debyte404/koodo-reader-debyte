@@ -3,8 +3,7 @@ import { dropdownList } from "../../../constants/dropdownList";
 import "./dropdownList.css";
 import { Trans } from "react-i18next";
 import { DropdownListProps, DropdownListState } from "./interface";
-import ConfigService from "../../../utils/storage/configService";
-import { isElectron } from "react-device-detect";
+import { ConfigService } from "../../../assets/lib/kookit-extra-browser.min";
 import { loadFontData } from "../../../utils/common";
 declare var window: any;
 class DropdownList extends React.Component<
@@ -16,23 +15,25 @@ class DropdownList extends React.Component<
     this.state = {
       currentFontFamilyIndex: dropdownList[0].option.findIndex((item: any) => {
         return (
-          item ===
+          item.value ===
           (ConfigService.getReaderConfig("fontFamily") || "Built-in font")
         );
       }),
       currentLineHeightIndex: dropdownList[1].option.findIndex((item: any) => {
         return (
-          item === (ConfigService.getReaderConfig("lineHeight") || "Default")
+          item.value ===
+          (ConfigService.getReaderConfig("lineHeight") || "Default")
         );
       }),
       currentTextAlignIndex: dropdownList[2].option.findIndex((item: any) => {
         return (
-          item === (ConfigService.getReaderConfig("textAlign") || "Default")
+          item.value ===
+          (ConfigService.getReaderConfig("textAlign") || "Default")
         );
       }),
       chineseConversionIndex: dropdownList[3].option.findIndex((item: any) => {
         return (
-          item ===
+          item.value ===
           (ConfigService.getReaderConfig("convertChinese") || "Default")
         );
       }),
@@ -56,7 +57,7 @@ class DropdownList extends React.Component<
   }
 
   handleView(event: any, option: string) {
-    let arr = event.target.value.split(",");
+    let arr = event.target.value.split("#");
     ConfigService.setReaderConfig(option, arr[0]);
     switch (option) {
       case "fontFamily":
@@ -118,7 +119,7 @@ class DropdownList extends React.Component<
                 index: number
               ) => (
                 <option
-                  value={[subItem.value, index.toString()]}
+                  value={subItem.value + "#" + index.toString()}
                   key={index}
                   className="general-setting-option"
                   selected={

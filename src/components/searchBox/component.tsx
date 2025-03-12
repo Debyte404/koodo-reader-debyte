@@ -1,8 +1,10 @@
 import React from "react";
 import "./searchBox.css";
-import SearchUtil from "../../utils/reader/searchUtil";
 import { SearchBoxProps } from "./interface";
-import ConfigService from "../../utils/storage/configService";
+import {
+  ConfigService,
+  SearchUtil,
+} from "../../assets/lib/kookit-extra-browser.min";
 
 class SearchBox extends React.Component<SearchBoxProps> {
   componentDidMount() {
@@ -111,7 +113,7 @@ class SearchBox extends React.Component<SearchBoxProps> {
               : {}
           }
           onCompositionStart={() => {
-            if (ConfigService.getReaderConfig("isNavLocked") === "yes") {
+            if (this.props.isNavLocked) {
               return;
             } else {
               ConfigService.setReaderConfig("isTempLocked", "yes");
@@ -135,7 +137,7 @@ class SearchBox extends React.Component<SearchBoxProps> {
               this.props.mode === "nav" ? { right: "-9px", top: "14px" } : {}
             }
           >
-            <span className="icon-close"></span>
+            <span className="icon-close theme-color-delete"></span>
           </span>
         ) : (
           <span className="header-search-text">

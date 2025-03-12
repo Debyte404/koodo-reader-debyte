@@ -8,17 +8,18 @@ export interface BackupDialogProps extends RouteComponentProps<any> {
   handleTokenDialog: (isOpenTokenDialog: boolean) => void;
   t: (title: string) => string;
   handleLoadingDialog: (isShowLoading: boolean) => void;
-  handleTipDialog: (isTipDialog: boolean) => void;
   handleFetchBooks: () => void;
   isOpenTokenDialog: boolean;
+  isAuthed: boolean;
   books: BookModel[];
   notes: NoteModel[];
   digests: NoteModel[];
+  dataSourceList: string[];
   bookmarks: BookmarkModel[];
 }
 export interface BackupDialogState {
-  currentStep: number | null;
   isBackup: string;
   currentDrive: string;
   isDeveloperVer: boolean;
+  isFinish: boolean;
 }

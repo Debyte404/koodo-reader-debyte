@@ -12,7 +12,6 @@ export interface ManagerProps extends RouteComponentProps<any> {
   shelfTitle: string;
   isOpenEditDialog: boolean;
   isOpenDeleteDialog: boolean;
-  isTipDialog: boolean;
   isDetailDialog: boolean;
   isOpenAddDialog: boolean;
   isBookSort: boolean;
@@ -22,6 +21,8 @@ export interface ManagerProps extends RouteComponentProps<any> {
   isAboutOpen: boolean;
   isShowLoading: boolean;
   isShowNew: boolean;
+  isShowSupport: boolean;
+  isAuthed: boolean;
   isOpenFeedbackDialog: boolean;
   dragItem: string;
   handleFetchBooks: () => void;
@@ -34,11 +35,11 @@ export interface ManagerProps extends RouteComponentProps<any> {
   handleEditDialog: (isOpenEditDialog: boolean) => void;
   handleDeleteDialog: (isOpenDeleteDialog: boolean) => void;
   handleAddDialog: (isOpenAddDialog: boolean) => void;
-  handleTipDialog: (isTipDialog: boolean) => void;
   handleDetailDialog: (isDetailDialog: boolean) => void;
   handleFeedbackDialog: (isShow: boolean) => void;
   handleLoadingDialog: (isShowLoading: boolean) => void;
   handleNewDialog: (isShowNew: boolean) => void;
+  handleShowSupport: (isShowSupport: boolean) => void;
   handleBackupDialog: (isBackup: boolean) => void;
   handleReadingState: (isReading: boolean) => void;
   handleSetting: (isSettingOpen: boolean) => void;

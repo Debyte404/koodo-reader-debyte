@@ -3,8 +3,8 @@ import "./deleteIcon.css";
 import { DeleteIconProps, DeleteIconStates } from "./interface";
 import DeletePopup from "../dialogs/deletePopup";
 import toast from "react-hot-toast";
-import ConfigService from "../../utils/storage/configService";
 import DatabaseService from "../../utils/storage/databaseService";
+import { ConfigService } from "../../assets/lib/kookit-extra-browser.min";
 
 class DeleteIcon extends React.Component<DeleteIconProps, DeleteIconStates> {
   constructor(props: DeleteIconProps) {
@@ -37,6 +37,10 @@ class DeleteIcon extends React.Component<DeleteIconProps, DeleteIconStates> {
         deleteFunc();
         toast.success(this.props.t("Deletion successful"));
       });
+      this.props.htmlBook.rendition.removeOneNote(
+        this.props.itemKey,
+        this.props.currentBook.format
+      );
       return;
     }
   };

@@ -1,7 +1,7 @@
 import React from "react";
 import "./loadingPage.css";
 import { LoadingPageProps } from "./interface";
-import ConfigService from "../../utils/storage/configService";
+import { ConfigService } from "../../assets/lib/kookit-extra-browser.min";
 import { Redirect } from "react-router-dom";
 
 class LoadingPage extends React.Component<LoadingPageProps> {
@@ -37,7 +37,7 @@ class LoadingPage extends React.Component<LoadingPageProps> {
       );
     } else {
       const renderLoadingList = () => {
-        return arr.map((item, index) => {
+        return arr.map((item) => {
           return (
             <div className="loading-page-list" key={item}>
               <div className="loading-page-list-cover"></div>
